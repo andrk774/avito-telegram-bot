@@ -1,0 +1,19 @@
+{
+  "interval_seconds": 300,
+  "topics": [
+    {
+      "name": "iPhone 13 до 40к",
+      "url": "https://www.avito.ru/rossiya/telefony?q=iphone+13",
+      "max_price": 40000,
+      "min_price": 10000,
+      "include": [],
+      "exclude": ["реплика", "копия", "на запчасти", "битый", "разбит"]
+    },
+    {
+      "name": "1-комн квартира СПб от собственника",
+      "url": "https://www.avito.ru/sankt-peterburg/kvartiry/sdam/na_dlitelnyy_srok/1-komnatnye",
+      "max_price": 45000,
+      "exclude": ["агент", "комиссия"]
+    }
+  ]
+}

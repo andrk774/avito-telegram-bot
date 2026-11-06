@@ -1,0 +1,9 @@
+# сборка
+/avito-bot
+avito-bot
+*.exe
+
+# состояние бота (локальное)
+state.json
+state.json.tmp
+*.db
