@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          out="avito-bot"
+          [ "$GOOS" = "windows" ] && out="avito-bot.exe"
+          go build -ldflags="-s -w -X main.version=${GITHUB_REF_NAME}" -o "$out" .
+          pkg="avito-bot_${GITHUB_REF_NAME}_${GOOS}_${GOARCH}"
+          mkdir "$pkg"
+          cp "$out" README.md LICENSE topics.json "$pkg"/
+          if [ "$GOOS" = "windows" ]; then
+            zip -r "$pkg.zip" "$pkg"
+            echo "ASSET=$pkg.zip" >> "$GITHUB_ENV"
+          else
+            tar czf "$pkg.tar.gz" "$pkg"
+            echo "ASSET=$pkg.tar.gz" >> "$GITHUB_ENV"
+          fi
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
+          generate_release_notes: true

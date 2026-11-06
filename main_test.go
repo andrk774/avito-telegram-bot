@@ -68,3 +68,52 @@ func TestFmtPrice(t *testing.T) {
 		t.Errorf("fmtPrice(-1): %q", fmtPrice(-1))
 	}
 }
+
+func TestStoreSeeAndDrop(t *testing.T) {
+	dir := t.TempDir()
+	s := openStore(dir + "/state.json")
+	s.addTopic(Topic{ID: "t1", Name: "Тема"})
+
+	// первое появление — новое
+	wasNew, old := s.see("t1", "100", 500)
+	if !wasNew || old != -1 {
+		t.Fatalf("первое see: wasNew=%v old=%d", wasNew, old)
+	}
+	// та же цена — не новое, старая цена 500
+	wasNew, old = s.see("t1", "100", 500)
+	if wasNew || old != 500 {
+		t.Fatalf("повтор see: wasNew=%v old=%d", wasNew, old)
+	}
+	// цена упала
+	wasNew, old = s.see("t1", "100", 400)
+	if wasNew || old != 500 {
+		t.Fatalf("падение see: wasNew=%v old=%d", wasNew, old)
+	}
+	if s.priceCount("t1") != 1 {
+		t.Fatalf("priceCount=%d", s.priceCount("t1"))
+	}
+	// удаление темы чистит цены
+	if name, ok := s.delTopic("t1"); !ok || name != "Тема" {
+		t.Fatalf("delTopic: %q %v", name, ok)
+	}
+	if s.priceCount("t1") != 0 {
+		t.Fatalf("после удаления priceCount=%d", s.priceCount("t1"))
+	}
+}
+
+func TestStorePersists(t *testing.T) {
+	dir := t.TempDir()
+	p := dir + "/state.json"
+	s := openStore(p)
+	s.addTopic(Topic{ID: "x", Name: "N", MaxPrice: 1000})
+	s.see("x", "1", 999)
+	s.flush() // scanTopic сбрасывает цены на диск после прохода
+	// перечитываем с диска
+	s2 := openStore(p)
+	if len(s2.topics()) != 1 || s2.topics()[0].Name != "N" {
+		t.Fatalf("темы не сохранились: %+v", s2.topics())
+	}
+	if s2.priceCount("x") != 1 {
+		t.Fatalf("цены не сохранились: %d", s2.priceCount("x"))
+	}
+}
